@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Telegram.Bot;
+using Telegram.Bot.AspNetCore;
 using TgTranslator.Data;
 using TgTranslator.Data.DTO;
 using TgTranslator.Data.Options;
