@@ -36,13 +36,13 @@ public class MetricsHostedService : IHostedService
                 var context = scope.ServiceProvider.GetService<TgTranslatorContext>();
 
                 var groupsCount = await context.Groups.CountAsync(cancellationToken);
-                _metrics.TotalGroups.Set(groupsCount);
+                _metrics.SetTotalGroups(groupsCount);
 
                 var usersCount = await context.Users.CountAsync(cancellationToken);
-                _metrics.TotalUsers.Set(usersCount);
+                _metrics.SetTotalUsers(usersCount);
 
                 var pmUsersCount = await context.Users.Where(x => x.PmAllowed).CountAsync(cancellationToken);
-                _metrics.TotalPmUsers.Set(pmUsersCount);
+                _metrics.SetTotalPmUsers(pmUsersCount);
 
                 await _timer.WaitForNextTickAsync(cancellationToken);
             }

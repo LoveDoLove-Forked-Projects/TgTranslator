@@ -363,3 +363,4 @@ MigrationBackup/
 out
 gen
 vcs.xml
+.DS_Store

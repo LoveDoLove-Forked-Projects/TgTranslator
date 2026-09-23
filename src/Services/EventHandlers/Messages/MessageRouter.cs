@@ -89,7 +89,7 @@ public class MessageRouter
         if (messageText == null)
             return;
 
-        _metrics.HandleGroupMessage(message.Chat.Id, messageText.Length);
+        _metrics.HandleGroupMessage(messageText.Length);
         if (!_validator.GroupMessageValid(message, messageText))
         {
             _logger.Information("Message by {ChatId} | {From} is not valid", message.Chat.Id, message.From);

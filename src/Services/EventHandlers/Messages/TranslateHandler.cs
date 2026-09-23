@@ -49,11 +49,10 @@ public partial class TranslateHandler
     public async Task Handle(Message message, string originalText, Settings groupConfig)
     {
         _logger.Information("Handling translation for {ChatId} | {From}...", message.Chat.Id, message.From);
-        _metrics.HandleTranslatorApiCall(message.Chat.Id, string.IsNullOrEmpty(originalText) ? 0 : originalText.Length);
+        _metrics.HandleTranslatorApiCall(string.IsNullOrEmpty(originalText) ? 0 : originalText.Length);
 
         // a setting that prevents automatically translating messages with links
-        if (!groupConfig.TranslateWithLinks
-            && groupConfig.TranslationMode is TranslationMode.Auto or TranslationMode.Forwards
+        if (groupConfig is { TranslateWithLinks: false, TranslationMode: TranslationMode.Auto or TranslationMode.Forwards }
             && message.Entities?.Any(x => x.Type is MessageEntityType.TextLink or MessageEntityType.Url) == true)
             return;
 
@@ -90,7 +89,7 @@ public partial class TranslateHandler
         var translationMs = ((DateTimeOffset)translationMessage.Date).ToUnixTimeMilliseconds() -
                             ((DateTimeOffset)message.Date).ToUnixTimeMilliseconds();
 
-        _metrics.TranslationResponseTime.Observe(translationMs);
+        _metrics.RecordTranslationResponseTime(translationMs);
         if (translationMs > 10000)
             _logger.Warning("Abnormal translation time for {ChatId} | {From} | {Time}ms",
                 message.Chat.Id,

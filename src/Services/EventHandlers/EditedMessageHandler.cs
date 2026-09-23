@@ -41,6 +41,6 @@ public class EditedMessageHandler
             return;
 
         await _client.EditMessageText(message.Chat.Id, translationId, translation, ParseMode.Html);
-        _metrics.TranslationEdits.Inc();
+        _metrics.RecordTranslationEdit();
     }
 }

@@ -9,12 +9,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Prometheus;
+using OpenTelemetry.Metrics;
 using Serilog;
 using TgTranslator;
 using TgTranslator.Data.Options;
 using TgTranslator.Menu;
 using TgTranslator.Services.Middlewares;
+using TgTranslator.Stats;
 using TgTranslator.Utils.Extensions;
 
 _ = Static.StartedTime;  // Initialize startup time
@@ -68,6 +69,21 @@ builder.Services
             .Add(new JsonStringEnumConverter<TranslationMode>(JsonNamingPolicy.CamelCase));
     });
 
+builder
+    .AddOpenTelemetry()
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddMeter(Metrics.MeterName, "System.Net.Http")
+        .AddView("http.client.request.duration", new ExplicitBucketHistogramConfiguration
+        {
+            Boundaries = [0.01, 0.015625, 0.03125, 0.0625, 0.125, 0.25, 0.5, 1, 2, 5, 10, 30]
+        })
+        .AddView("translation_response_time_ms", new ExplicitBucketHistogramConfiguration
+        {
+            Boundaries = [250, 500, 750, 1000, 1250, 1500, 1750, 3000, 5000, 8000]
+        })
+        .AddPrometheusExporter(options => options.DisableTotalNameSuffixForCounters = true));
+
 builder.RegisterServices();
 
 
@@ -95,13 +111,12 @@ app.UseWhen(
     ctx => ctx.Request.Path.StartsWithSegments("/api/bot"),
     ab => ab.UseMiddleware<EnableRequestBodyBufferingMiddleware>()
 );
-app.Map("/metrics", metricsApp =>
-{
-    metricsApp.UseMiddleware<BasicAuthMiddleware>(builder.Configuration.GetValue<string>("prometheus:login"),
-        builder.Configuration.GetValue<string>("prometheus:password"));
-    metricsApp.UseMetricServer("");
-});
-app.UseHttpMetrics();
+app.UseWhen(
+    context => context.Request.Path.StartsWithSegments("/metrics"),
+    metricsApp => metricsApp.UseMiddleware<BasicAuthMiddleware>(
+        builder.Configuration.GetValue<string>("prometheus:login"),
+        builder.Configuration.GetValue<string>("prometheus:password")));
+app.MapPrometheusScrapingEndpoint();
 
 
 await app.RunAsync();
