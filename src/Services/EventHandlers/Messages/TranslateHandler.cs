@@ -49,7 +49,6 @@ public partial class TranslateHandler
     public async Task Handle(Message message, string originalText, Settings groupConfig)
     {
         _logger.Information("Handling translation for {ChatId} | {From}...", message.Chat.Id, message.From);
-        _metrics.HandleTranslatorApiCall(string.IsNullOrEmpty(originalText) ? 0 : originalText.Length);
 
         // a setting that prevents automatically translating messages with links
         if (groupConfig is { TranslateWithLinks: false, TranslationMode: TranslationMode.Auto or TranslationMode.Forwards }
@@ -103,8 +102,14 @@ public partial class TranslateHandler
     {
         var includeLanguageName = groupConfig.Languages.Length > 1;
 
-        var translationTasks = groupConfig.Languages
-            .Select(targetCode => _translator.TranslateTextAsync(originalText, targetCode));
+        var translationTasks = groupConfig.Languages.Select(async targetCode =>
+        {
+            var resolved = await _translator.TranslateTextAsync(originalText, targetCode);
+            _metrics.HandleTranslatorApiCall(resolved.Text.Length, resolved.DetectedLanguage, targetCode);
+
+            return resolved;
+        });
+
         var translations = await Task.WhenAll(translationTasks);
 
         var sb = new StringBuilder();

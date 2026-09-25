@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Threading;
 using TgTranslator.Services;
@@ -62,10 +63,15 @@ public class Metrics : IDisposable
         _groupCharacters.Add(charactersCount);
     }
 
-    public void HandleTranslatorApiCall(int charactersCount)
+    public void HandleTranslatorApiCall(int charactersCount, string sourceLanguage, string targetLanguage)
     {
-        _translatorApiCalls.Add(1);
-        _translatorApiCharacters.Add(charactersCount);
+        var tags = new TagList
+        {
+            { "source_language", sourceLanguage },
+            { "target_language", targetLanguage }
+        };
+        _translatorApiCalls.Add(1, tags);
+        _translatorApiCharacters.Add(charactersCount, tags);
     }
 
     public void TranslationCacheCounterInc()
